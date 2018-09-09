@@ -1,6 +1,7 @@
 import Dude from '../sprites/Dude';
-import Star from '../sprites/Star';
-import Ground from '../sprites/Ground';
+import Stars from '../sprites/Stars';
+import Platforms from '../sprites/Platforms';
+import Bombs from '../sprites/Bombs';
 
 class Game extends Phaser.Scene {
     constructor() {
@@ -10,58 +11,82 @@ class Game extends Phaser.Scene {
         this.cursors;
         this.platforms;
         this.player;
-        this.starts;
+        this.stars;
+        this.scoreText;
     }
 
     create() {
         this.add.image(400, 300, 'sky');
-        // console.log('here');
-        // this.buildLevel();
-
-        // this.player = new Dude(this, 100, 450, 'dude');
-        // this.stars = this.physics.add.group({
-        //     classType: Star,
-        //     key: 'star',
-        //     repeat: 11,
-        //     setXY: { x: 12, y: 0, stepX: 70 }
-        // });
-
-        // this.physics.add.collider(this.player, this.platforms);
-        // this.physics.add.collider(this.stars, this.platforms);
-        // this.cursors = this.input.keyboard.createCursorKeys();
-        // this.stars.children.iterate(function(child) {
-        //     child.body.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-        // });
+        this.buildLevel();
+        this.player = new Dude(this, 100, 450, 'dude');
+        this.bombs = new Bombs(this);
+        this.addCollision();
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.scoreText = this.add.text(16, 16, 'Score: 0', {
+            fontSize: '30px',
+            fill: '#000'
+        });
     }
 
-    // buildLevel() {
-    //     this.platforms = this.physics.add.staticGroup();
-    //     this.platforms.createFromConfig({
-    //         classType: Ground,
-    //         key: 'ground',
-    //         setXY: { x: 400, y: 568 },
-    //         setScale: { x: 2, y: 2 }
-    //     });
-    //     this.platforms.createFromConfig({
-    //         classType: Ground,
-    //         key: 'ground',
-    //         setXY: { x: 600, y: 400 }
-    //     });
-    //     this.platforms.createFromConfig({
-    //         classType: Ground,
-    //         key: 'ground',
-    //         setXY: { x: 50, y: 250 }
-    //     });
-    //     this.platforms.createFromConfig({
-    //         classType: Ground,
-    //         key: 'ground',
-    //         setXY: { x: 750, y: 220 }
-    //     });
-    // }
+    buildLevel() {
+        this.platforms = new Platforms(this, 400, 568);
+        this.platforms.addPlatforms([
+            { x: 600, y: 400 },
+            { x: 50, y: 250 },
+            { x: 750, y: 220 }
+        ]);
+        this.stars = new Stars(this, 12, 0, 70, 11);
+    }
 
-    // update() {
-    //     this.player.update();
-    // }
+    addCollision() {
+        this.physics.add.collider(this.player, this.platforms.body);
+        this.physics.add.collider(this.stars.body, this.platforms.body);
+        this.physics.add.overlap(
+            this.player,
+            this.stars.body,
+            this.updateScore,
+            null,
+            this
+        );
+        this.physics.add.collider(this.bombs.body, this.platforms.body);
+        this.physics.add.collider(
+            this.player,
+            this.bombs.body,
+            this.hitBomb,
+            null,
+            this
+        );
+    }
+
+    addPlatform(x = 0, y = 0) {
+        return new Ground(this, x, y);
+    }
+
+    updateScore(player, star) {
+        this.player.collectStar(player, star);
+        this.scoreText.setText('Score: ' + this.player.score);
+        if (this.stars.body.countActive(true) === 0) {
+            this.stars.respawn();
+            this.bombs.spawnBomb(
+                this.player.x < 400
+                    ? Phaser.Math.Between(400, 800)
+                    : Phaser.Math.Between(0, 400)
+            );
+        }
+    }
+
+    hitBomb(player, bomb) {
+        this.physics.pause();
+        player.setTint(0xff0000);
+        player.anims.play('turn');
+        this.gameOver = true;
+    }
+
+    update() {
+        if (!this.gameOver) {
+            this.player.update();
+        }
+    }
 }
 
 export default Game;

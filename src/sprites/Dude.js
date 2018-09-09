@@ -1,10 +1,11 @@
 class Dude extends Phaser.GameObjects.Sprite {
     constructor(scene, x, y, key) {
         super(scene, x, y, key);
-        this.scene.physics.world.enable(this);
-        this.scene.add.existing(this);
+        scene.physics.world.enable(this);
+        scene.add.existing(this);
         this.body.setBounce(0.2).setCollideWorldBounds(true);
         this.setAnimations(this.scene);
+        this.score = 0;
     }
 
     setAnimations(scene) {
@@ -33,6 +34,11 @@ class Dude extends Phaser.GameObjects.Sprite {
             frameRate: 10,
             repeat: -1
         });
+    }
+
+    collectStar(player, star) {
+        star.disableBody(true, true);
+        this.score += 10;
     }
 
     update() {
